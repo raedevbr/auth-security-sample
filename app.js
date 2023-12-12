@@ -4,7 +4,7 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const ejs = require('ejs');
 const mongoose = require('mongoose');
-const encrypt = require('mongoose-encryption');
+const md5 = require('md5');
 
 const app = express();
 
@@ -18,8 +18,6 @@ const userSchema = new mongoose.Schema({
     email: String,
     password: String
 });
-
-userSchema.plugin(encrypt, { secret: process.env.SECRET, encryptedFields: ['password']});
 
 const User = new mongoose.model('User', userSchema);
 
@@ -51,7 +49,8 @@ app.route('/login')
             return res.status(404).json({ message: "User not found."});
         }
 
-        if (password === existingUser.password) {
+        const hashedPassword = md5(password);
+        if (hashedPassword === existingUser.password) {
             res.render('secrets');
         } else {
             return res.status(401).json({ message: "Invalid credentials."});
@@ -76,7 +75,8 @@ app.route('/register')
     const { email, password } = req.body;
     
     try {
-        const newUser = new User({email, password});
+        const hashedPassword = md5(password);
+        const newUser = new User({ email, password: hashedPassword });
         await newUser.save();
         res.render('secrets');
     } catch (err) {
