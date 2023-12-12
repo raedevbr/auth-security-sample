@@ -4,7 +4,8 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const ejs = require('ejs');
 const mongoose = require('mongoose');
-const md5 = require('md5');
+const bcrypt = require('bcrypt');
+const saltRounds = 10;
 
 const app = express();
 
@@ -49,11 +50,12 @@ app.route('/login')
             return res.status(404).json({ message: "User not found."});
         }
 
-        const hashedPassword = md5(password);
-        if (hashedPassword === existingUser.password) {
-            res.render('secrets');
-        } else {
+        const passwordMatch = await bcrypt.compare(password, existingUser.password);
+
+        if (!passwordMatch) {
             return res.status(401).json({ message: "Invalid credentials."});
+        } else {
+            res.render('secrets');
         }
 
     } catch (err) {
@@ -75,7 +77,7 @@ app.route('/register')
     const { email, password } = req.body;
     
     try {
-        const hashedPassword = md5(password);
+        const hashedPassword = await bcrypt.hash(password, saltRounds);
         const newUser = new User({ email, password: hashedPassword });
         await newUser.save();
         res.render('secrets');
