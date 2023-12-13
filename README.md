@@ -1,14 +1,13 @@
 # Secrets App - Auth Security Sample
 
-An app for learning purposes.
-Along the commits, you'll find these different levels of authentication & security codes:
+An app for learning purposes.<br>Along the commits, you'll find these different levels of authentication & security codes:
 
-Level 1: Username and password only
-Level 2: Encryption
-Level 3: Hashing passwords
-Level 4: Salting and hashing passwords with bcrypt
-Level 5: Using passport.js to add cookies and sessions
-Level 6: OAuth 2.0 & implement sign in with google
+* Level 1: Username and password only
+* Level 2: Encryption
+* Level 3: Hashing passwords
+* Level 4: Salting and hashing passwords with bcrypt
+* Level 5: Using passport.js to add cookies and sessions
+* Level 6: OAuth 2.0 & implement sign in with google
 
 ![preview home](./public/image/preview-secrets-home.png)
 ![preview login](./public/image/preview-secrets-login.png)
