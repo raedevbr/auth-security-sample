@@ -4,8 +4,9 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const ejs = require('ejs');
 const mongoose = require('mongoose');
-const bcrypt = require('bcrypt');
-const saltRounds = 10;
+const session = require('express-session');
+const passport = require('passport');
+const passportLocalMongoose = require('passport-local-mongoose');
 
 const app = express();
 
@@ -13,14 +14,30 @@ app.use(express.static('public'));
 app.set('view engine', 'ejs');
 app.use(bodyParser.urlencoded({extended: true}));
 
+app.use(session({
+    secret: "Raul Araujo is the newest milionaire from Brazil.",
+    resave: false,
+    saveUninitialized: false
+}));
+
+app.use(passport.initialize());
+app.use(passport.session());
+
 mongoose.connect('mongodb://localhost:27017/userDB');
 
 const userSchema = new mongoose.Schema({
-    email: String,
+    username: String,
     password: String
 });
 
+userSchema.plugin(passportLocalMongoose);
+
 const User = new mongoose.model('User', userSchema);
+
+passport.use(User.createStrategy());
+
+passport.serializeUser(User.serializeUser());
+passport.deserializeUser(User.deserializeUser());
 
 app.route('/')
 .get(async (req, res) => {
@@ -40,28 +57,10 @@ app.route('/login')
     }
 })
 
-.post(async (req, res) => {
-    const { email, password } = req.body;
-    
-    try {
-        const existingUser = await User.findOne({email: email});
-
-        if (!existingUser) {
-            return res.status(404).json({ message: "User not found."});
-        }
-
-        const passwordMatch = await bcrypt.compare(password, existingUser.password);
-
-        if (!passwordMatch) {
-            return res.status(401).json({ message: "Invalid credentials."});
-        } else {
-            res.render('secrets');
-        }
-
-    } catch (err) {
-        res.status(500).send(err);
-    }
-});
+.post(passport.authenticate('local', {
+    successRedirect: '/secrets',
+    failureRedirect: '/login'
+}));
 
 
 app.route('/register')
@@ -74,16 +73,42 @@ app.route('/register')
 })
 
 .post(async (req, res) => {
-    const { email, password } = req.body;
+    const { username, password } = req.body;
     
     try {
-        const hashedPassword = await bcrypt.hash(password, saltRounds);
-        const newUser = new User({ email, password: hashedPassword });
-        await newUser.save();
-        res.render('secrets');
+        const user = await User.register({ username: username }, password);
+        req.login(user, (err) => {
+            if (err) {
+                console.error(err);
+                res.status(500).send(err);
+            } else {
+                res.redirect('/secrets');
+            }
+        });
+
+    } catch (err) {
+        console.error(err);
+        res.status(500).send(err);
+    }
+});
+
+app.route('/secrets')
+.get(async (req, res) => {
+    try {
+        if (req.isAuthenticated()) {
+            res.render('secrets');
+        } else {
+            res.redirect('/login');
+        }
     } catch (err) {
         res.status(500).send(err);
     }
+});
+
+app.get('/logout', (req, res) => {
+    req.logout(() => {
+        res.redirect('/');
+    });
 });
 
 
